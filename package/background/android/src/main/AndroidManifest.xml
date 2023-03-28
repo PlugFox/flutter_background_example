@@ -1,0 +1,66 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+  package="tld.domain.background">
+
+    <!-- Allows a regular application to use Service.startForeground. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+
+    <!-- Allows an application to receive the Intent.ACTION_BOOT_COMPLETED
+            that is broadcast after the system finishes booting. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <!-- Intent android.intent.action.BOOT_COMPLETED is received after a "cold" boot. -->
+    <uses-permission android:name="android.permission.BOOT_COMPLETED" />
+
+    <!-- Intent android.intent.action.QUICKBOOT_POWERON is received after a "restart" or a "reboot". -->
+    <uses-permission android:name="android.permission.QUICKBOOT_POWERON" />
+
+    <!-- Allows using PowerManager WakeLocks to keep processor from sleeping or screen from dimming. -->
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
+
+    <!-- Allows applications to access information about networks. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!-- Allows applications to open network sockets. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+
+    <application>
+        <!--
+          Foreground service
+          - - - - - - - - - - - - - - - - - -
+          Specify that the service is a foreground service that satisfies
+          a particular use case with "foregroundServiceType". For example,
+          a foreground service type of "location" indicates that an app
+          is getting the device's current location, usually to continue
+          a user-initiated action related to device location.
+
+          The "dataSync" indicates that the service is performing a sync operation,
+          such as downloading or uploading data from a remote server.
+
+          You can assign multiple foreground service types to a particular service.
+          - - - - - - - - - - - - - - - - - -
+          https://developer.android.com/guide/topics/manifest/service-element
+          -->
+        <service android:name=".BackgroundService"
+                 android:enabled="true"
+                 android:exported="true"
+                 android:stopWithTask="false"
+                 android:foregroundServiceType="dataSync"
+                 />
+
+        <!-- Restart service after reboot
+          https://developer.android.com/guide/topics/manifest/receiver-element
+          -->
+        <receiver
+                android:name=".BootReceiver"
+                android:enabled="true"
+                android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="android.intent.action.QUICKBOOT_POWERON"/>
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>
