@@ -29,7 +29,10 @@ enum BackgroundStatus {
   bool get isOpened => this == opened;
 
   /// Is the background service not opening?
-  bool get isNotOpened => !isOpened;
+  bool get isClosed => this == closed;
+
+  /// In progress
+  bool get inProgress => !isOpened && !isClosed;
 
   @override
   String toString() => name;

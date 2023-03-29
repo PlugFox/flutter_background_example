@@ -18,11 +18,14 @@ class OpenMessage {
 @HostApi()
 abstract class ApiFromDart {
   /// Open the background service.
+  @async
   void open(OpenMessage openMessage);
 
+  /// Check if the background service is open.
   BooleanValue isOpen();
 
   /// Close the background service.
+  @async
   void close();
 }
 

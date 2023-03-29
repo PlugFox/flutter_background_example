@@ -42,12 +42,13 @@ class BackgroundScope extends StatefulWidget {
 
 /// State for widget BackgroundScope.
 class _BackgroundScopeState extends State<BackgroundScope> {
-  final Controller _controller = Controller();
+  late final Controller _controller;
   late BackgroundStatus _status = _controller.status;
 
   @override
   void initState() {
     super.initState();
+    _controller = Controller();
     if (widget.autoOpen) _controller.open().ignore();
     _controller.addListener(_onStatusChanged);
   }

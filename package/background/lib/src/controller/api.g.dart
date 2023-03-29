@@ -118,6 +118,7 @@ class ApiFromDart {
     }
   }
 
+  /// Check if the background service is open.
   Future<BooleanValue> isOpen() async {
     final BasicMessageChannel<Object?> channel = BasicMessageChannel<Object?>(
         'dev.flutter.pigeon.ApiFromDart.isOpen', codec,

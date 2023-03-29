@@ -207,7 +207,7 @@ Create the following directories for pigeon code generation (if they do not exis
 
 ```bash
 mkdir -p ./lib/src/controller
-mkdir -p ./android/src/main/kotlin/tld/domain/controller
+mkdir -p ./android/src/main/kotlin/tld/domain/controller/api
 ```
 
 And run code generation
@@ -216,7 +216,7 @@ And run code generation
 flutter pub run pigeon \
     --input "pigeons/api.dart" \
     --dart_out "lib/src/controller/api.g.dart" \
-    --kotlin_out "android/src/main/kotlin/tld/domain/controller/Api.kt" \
+    --kotlin_out "android/src/main/kotlin/tld/domain/controller/api/Api.kt" \
     --kotlin_package "tld.domain.controller.api"
 ```
 
@@ -561,3 +561,33 @@ dependencies:
   background:
     path: package/background
 ```
+
+---
+
+13. `[background]` Create background service.
+
+````bash
+
+```bash
+mkdir -p ./android/src/main/kotlin/tld/domain/background_service
+code     ./android/src/main/kotlin/tld/domain/background_service/BackgroundService.kt
+---
+
+<<
+
+```kotlin
+
+```
+
+14. `[background]` Implement the background service with the Kotlin language.
+
+```bash
+code ./android/src/main/kotlin/tld/domain/controller/BackgroundController.kt
+```
+
+15. `[background]` Configure the background plugin.
+
+```bash
+code ./android/src/main/kotlin/tld/domain/background/BackgroundPlugin.kt
+```
+````

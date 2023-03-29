@@ -89,6 +89,7 @@ data class OpenMessage (
     )
   }
 }
+
 @Suppress("UNCHECKED_CAST")
 private object ApiFromDartCodec : StandardMessageCodec() {
   override fun readValueOfType(type: Byte, buffer: ByteBuffer): Any? {
@@ -131,10 +132,11 @@ private object ApiFromDartCodec : StandardMessageCodec() {
  */
 interface ApiFromDart {
   /** Open the background service. */
-  fun open(openMessage: OpenMessage)
+  fun open(openMessage: OpenMessage, callback: (Result<Unit>) -> Unit)
+  /** Check if the background service is open. */
   fun isOpen(): BooleanValue
   /** Close the background service. */
-  fun close()
+  fun close(callback: (Result<Unit>) -> Unit)
 
   companion object {
     /** The codec used by ApiFromDart. */
@@ -150,14 +152,14 @@ interface ApiFromDart {
           channel.setMessageHandler { message, reply ->
             val args = message as List<Any?>
             val openMessageArg = args[0] as OpenMessage
-            var wrapped: List<Any?>
-            try {
-              api.open(openMessageArg)
-              wrapped = listOf<Any?>(null)
-            } catch (exception: Throwable) {
-              wrapped = wrapError(exception)
+            api.open(openMessageArg) { result: Result<Unit> ->
+              val error = result.exceptionOrNull()
+              if (error != null) {
+                reply.reply(wrapError(error))
+              } else {
+                reply.reply(wrapResult(null))
+              }
             }
-            reply.reply(wrapped)
           }
         } else {
           channel.setMessageHandler(null)
@@ -183,14 +185,14 @@ interface ApiFromDart {
         val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.ApiFromDart.close", codec)
         if (api != null) {
           channel.setMessageHandler { _, reply ->
-            var wrapped: List<Any?>
-            try {
-              api.close()
-              wrapped = listOf<Any?>(null)
-            } catch (exception: Throwable) {
-              wrapped = wrapError(exception)
+            api.close() { result: Result<Unit> ->
+              val error = result.exceptionOrNull()
+              if (error != null) {
+                reply.reply(wrapError(error))
+              } else {
+                reply.reply(wrapResult(null))
+              }
             }
-            reply.reply(wrapped)
           }
         } else {
           channel.setMessageHandler(null)

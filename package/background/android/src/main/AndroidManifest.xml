@@ -41,7 +41,7 @@
           - - - - - - - - - - - - - - - - - -
           https://developer.android.com/guide/topics/manifest/service-element
           -->
-        <service android:name=".BackgroundService"
+        <service android:name="tld.domain.background_service.BackgroundService"
                  android:enabled="true"
                  android:exported="true"
                  android:stopWithTask="false"
@@ -52,7 +52,7 @@
           https://developer.android.com/guide/topics/manifest/receiver-element
           -->
         <receiver
-                android:name=".BootReceiver"
+                android:name="tld.domain.boot_receiver.BootReceiver"
                 android:enabled="true"
                 android:exported="true">
             <intent-filter>
