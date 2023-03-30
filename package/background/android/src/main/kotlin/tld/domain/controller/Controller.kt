@@ -51,15 +51,13 @@ class Controller(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) : IAt
             BackgroundService.startBackgroundService(applicationContext, entryPointRawHandler)
             callback(Result.success(Unit))
             sink?.afterOpening { }
-        } catch (e: Throwable) {
-            callback(Result.failure(e))
+        } catch (exception: Throwable) {
+            Log.e(TAG, "Error while starting BackgroundService", exception)
+            callback(Result.failure(exception))
         }
     }
 
-    override fun isOpen(): BooleanValue = BackgroundService.isRunning().let {
-        Log.d(TAG, if (it) "BackgroundService is running" else "BackgroundService is not running")
-        BooleanValue(it)
-    }
+    override fun isOpen(): BooleanValue = BooleanValue(BackgroundService.healthCheck(applicationContext))
 
     override fun close(callback: (Result<Unit>) -> Unit) {
         Log.d(TAG, "close")
@@ -67,8 +65,9 @@ class Controller(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) : IAt
             BackgroundService.stopBackgroundService(applicationContext)
             callback(Result.success(Unit))
             sink?.afterClosing { }
-        } catch (e: Throwable) {
-            callback(Result.failure(e))
+        } catch (exception: Throwable) {
+            Log.e(TAG, "Error while closing BackgroundService", exception)
+            callback(Result.failure(exception))
         }
     }
 }

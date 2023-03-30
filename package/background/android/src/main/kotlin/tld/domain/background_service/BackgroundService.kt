@@ -1,9 +1,6 @@
 package tld.domain.background_service
 
-import android.app.Notification
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.app.Service
+import android.app.*
 import android.content.Context
 import android.content.Intent
 import android.os.Build
@@ -17,37 +14,87 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.embedding.engine.dart.DartExecutor
 import io.flutter.embedding.engine.loader.FlutterLoader
 import io.flutter.view.FlutterCallbackInformation
+import tld.domain.background.R
 
 /// Android background service (Foreground Service)
 /// with FlutterEngine inside.
+///
+/// This service is started by [BackgroundService.startBackgroundService] and stopped by
+/// [BackgroundService.stopBackgroundService].
+///
+/// -------------------------
+/// Lifecycle
+/// -------------------------
+/// Initialization:
+/// 1. startBackgroundService(...) ->
+/// 2. onCreate(...) ->
+/// 3. createNotificationChannel() ->
+/// 4. onStartCommand(...) ->
+/// 5. initService(...) ->
+/// 6. startForeground(...) ->
+/// 7. startDartIsolate(...)
+///
+/// Termination:
+/// 1. stopBackgroundService(...) ->
+/// 2. onDestroy(...)
 class BackgroundService : Service() {
     companion object {
-        // Запущен ли сервис?
-        @Suppress("MemberVisibilityCanBePrivate", "unused")
-        fun isRunning(): Boolean = flutterEngine != null
+        /// Health check of FlutterEngine and ForegroundService
+        fun healthCheck(context: Context) : Boolean {
+            val dart = isExecutingDart
+            val service = isServiceRunning
+            fun log(message: String) {
+                Log.d(TAG, "[healthCheck] $message")
+                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+            }
+            return if (isExecutingDart && service) {
+                log("Background service is running")
+                true
+            } else if (!isExecutingDart && !service) {
+                log("Background service is not running")
+                false
+            } else if (!dart) {
+                log("Background service is running w/0 Dart")
+                stopBackgroundService(context)
+                false
+            } else {
+                log("Dart is running w/0 Background service")
+                stopBackgroundService(context)
+                false
+            }
+        }
 
-        /// Запустить Background Service по идентификатору точки входа
+        // Check if service is running
+        @Suppress("MemberVisibilityCanBePrivate", "unused")
+        var isExecutingDart: Boolean
+            get() = flutterEngine?.dartExecutor?.isExecutingDart == true
+            private set(_) {}
+
+        /// Start Background Service by entryPointRawHandler
         @Suppress("MemberVisibilityCanBePrivate", "unused")
         fun startBackgroundService(context: Context, entryPointRawHandler: Long) {
-            Log.d(TAG, "[startBackgroundService] Will try to start BackgroundService by entryPointRawHandler: $entryPointRawHandler")
+            Log.d(TAG, "[startBackgroundService] Will try to start BackgroundService " +
+                    "by entryPointRawHandler: $entryPointRawHandler")
             FlutterCallbackInformation.lookupCallbackInformation(entryPointRawHandler).apply {
                 startBackgroundService(context, callbackLibraryPath, callbackName)
             }
         }
 
-        /// Запустить Background Service по описанию пути к точке входа
+        /// Start Background Service by callbackLibraryPath and callbackName
         @Suppress("MemberVisibilityCanBePrivate", "unused")
         fun startBackgroundService(context: Context, callbackLibraryPath: String, callbackName: String) {
             if (callbackLibraryPath.isEmpty() || callbackName.isEmpty()) return
-            if (isRunning()) stopBackgroundService(context)
-            Log.d(TAG, "[startBackgroundService] Will try to start BackgroundService by callbackLibraryPath: $callbackLibraryPath, callbackName: $callbackName")
+            if (isExecutingDart) stopBackgroundService(context)
+            Log.d(TAG, "[startBackgroundService] Will try to start BackgroundService " +
+                    "by callbackLibraryPath: $callbackLibraryPath, callbackName: $callbackName")
             Intent(context, BackgroundService::class.java).apply {
                 putExtra("ContentTitle", "Background service enabled")
                 putExtra("ContentText", "Background service has been enabled.")
                 putExtra(CALLBACK_LIBRARY_PATH_KEY, callbackLibraryPath)
                 putExtra(CALLBACK_NAME_KEY, callbackName)
                 action = ACTION_START_FOREGROUND_SERVICE
-                ContextCompat.startForegroundService(context, this)
+            }.also {
+                ContextCompat.startForegroundService(context, it)
             }
             putLastCallbackInformation(context, callbackLibraryPath, callbackName)
         }
@@ -55,7 +102,7 @@ class BackgroundService : Service() {
         /// Остановить Background Service
         @Suppress("MemberVisibilityCanBePrivate", "unused")
         fun stopBackgroundService(context: Context) {
-            if (!isRunning()) return
+            if (!isExecutingDart) return
             Log.d(TAG, "[stopBackgroundService] Will try to stop BackgroundService")
             Intent(context, BackgroundService::class.java).apply {
                 action = ACTION_STOP_FOREGROUND_SERVICE
@@ -94,6 +141,7 @@ class BackgroundService : Service() {
             }
 
         private var flutterEngine: FlutterEngine? = null
+        private var isServiceRunning: Boolean = false
         private const val TAG: String = "BackgroundService"
         private const val FOREGROUND_SERVICE_ID: Int = 1
         private const val NOTIFICATION_CHANNEL_ID: String = "tld.domain.background_service.BackgroundServiceChannel"
@@ -105,13 +153,15 @@ class BackgroundService : Service() {
         private const val CALLBACK_NAME_KEY = "CALLBACK_NAME"
     }
 
-    /// При создании инстанса
+    /// On create service
     override fun onCreate() {
-        super.onCreate()
+        isServiceRunning = true
+        //super.onCreate()
         Log.d(TAG, "[onCreate] BackgroundService created")
+        createNotificationChannel()
     }
 
-    /// Called when the service is being started.
+    /// Handling incoming intents and start foreground service
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val action: String? = intent?.action
         Log.d(TAG, String.format("[onStartCommand] %s", action))
@@ -125,10 +175,14 @@ class BackgroundService : Service() {
             }
             // Вызывается для остановки foreground service
             ACTION_STOP_FOREGROUND_SERVICE -> {
+                Log.d(TAG, "[onStartCommand] Stop foreground service and remove the notification.")
+
                 // Stop foreground service and remove the notification.
                 stopForeground(true)
+
                 // Stop the foreground service.
                 stopSelf()
+
                 Log.d(TAG, String.format("[onStartCommand] Background service is stopped."))
                 Toast.makeText(applicationContext, "Background service is stopped.", Toast.LENGTH_LONG).show()
             }
@@ -136,19 +190,20 @@ class BackgroundService : Service() {
                 Log.d(TAG, String.format("[onStartCommand] Unknown action: %s", action))
             }
         }
-        return super.onStartCommand(intent, flags, startId)
+        return START_STICKY
     }
 
     /// Called when the service is no longer used and is being destroyed permanently.
     override fun onDestroy() {
+        isServiceRunning = false
         Log.d(TAG, String.format("[onDestroy] Service is destroyed permanently."))
         try {
             closeService()
-            super.onDestroy()
-        } catch (error: Throwable) {
-            Log.d(TAG, "[onDestroy] Kill current process to avoid memory leak in other plugin.")
+        } catch (exception: Throwable) {
+            Log.d(TAG, "[onDestroy] Kill current process to avoid memory leak in other plugin.", exception)
             android.os.Process.killProcess(android.os.Process.myPid())
         }
+        super.onDestroy()
     }
 
     /// Called by the system every time a client explicitly starts
@@ -161,7 +216,8 @@ class BackgroundService : Service() {
     /// + Start ForegroundService
     /// + Create and start FlutterEngine
     private fun initService(intent: Intent) {
-        if (isRunning()) {
+        Log.d(TAG, String.format("[initService] Initialize background service"))
+        if (isExecutingDart) {
             val exception = Exception("BackgroundService already running!")
             Log.e(TAG, "[initService] BackgroundService already running!", exception)
             throw exception
@@ -169,49 +225,68 @@ class BackgroundService : Service() {
         try {
             intent.let {
                 val callbackLibraryPath: String =
-                    it.getStringExtra(CALLBACK_LIBRARY_PATH_KEY) ?: throw Exception("CallbackLibraryPath not passed for dart entry point")
+                    it.getStringExtra(CALLBACK_LIBRARY_PATH_KEY) ?:
+                        throw Exception("CallbackLibraryPath not passed for dart entry point")
                 val callbackName: String =
-                    it.getStringExtra(CALLBACK_NAME_KEY) ?: throw Exception("CallbackName not passed for dart entry point")
+                    it.getStringExtra(CALLBACK_NAME_KEY) ?:
+                        throw Exception("CallbackName not passed for dart entry point")
 
                 fun getNotification(): Notification = NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
                     .setContentTitle(it.getStringExtra("ContentTitle") ?: "Background service enabled")
                     .setContentText(it.getStringExtra("ContentText") ?: "Background service has been enabled")
-                    //.setSmallIcon(R.drawable.ic_time)
-                    .setOngoing(true)
+                    .setSmallIcon(R.drawable.ic_background)
+                    .setAutoCancel(false) // Remove notification on click
+                    .setOngoing(true) // Prevent swipe to remove
                     .build()
 
-                createNotificationChannel()
                 startForeground(FOREGROUND_SERVICE_ID, getNotification())
-                runDartEntryPoint(callbackLibraryPath, callbackName)
+                startDartIsolate(callbackLibraryPath, callbackName)
             }
         } catch (exception: Throwable) {
-            Log.e(TAG, "[initService] An error occurred while initializing the service ${exception.message}")
+            Log.e(TAG, "[initService] An error occurred while initializing the service", exception)
             closeService()
             throw exception
         }
     }
 
     /// Close background service:
+    /// + Stop foreground service and remove the notification
     /// + Destroy and discard flutter engine
     /// + Delete notification channel
     private fun closeService() {
         try {
-            Log.d(TAG, "[closeService] Freeing background service resources")
-            // Destroy and discard flutter engine
+            try {
+                Log.d(TAG, "[closeService] Stop foreground service and remove the notification.")
+                stopForeground(true)
+            } catch (err: Throwable) {
+                Log.w(TAG, "[closeService] Can't stop foreground service", err)
+            }
+
+            Log.d(TAG, "[closeService] Destroy and discard flutter engine.")
             flutterEngine?.apply {
+                try {
+                    serviceControlSurface.detachFromService()
+                } catch (err: Throwable) {
+                    Log.w(TAG, "[closeService] Can't detach service control surface from flutter engine", err)
+                }
                 try {
                     plugins.removeAll()
                 } catch (err: Throwable) {
-                    Log.w(TAG, "Can't remove plugins from flutter engine ${err.message}")
+                    Log.w(TAG, "[closeService] Can't remove plugins from flutter engine", err)
                 }
                 destroy()
             }
             flutterEngine = null
-            // Delete notification channel
-            deleteNotificationChannel()
-        } catch (err: Throwable) {
-            Log.e(TAG, "Error freeing background service resources ${err.message}")
-            throw err
+
+            try {
+                Log.d(TAG, "[closeService] Delete notification channel.")
+                deleteNotificationChannel()
+            } catch (err: Throwable) {
+                Log.w(TAG, "[closeService] Can't delete notification channel", err)
+            }
+        } catch (exception: Throwable) {
+            Log.e(TAG, "[closeService] Error freeing background service resources", exception)
+            throw exception
         }
     }
 
@@ -222,10 +297,10 @@ class BackgroundService : Service() {
         val channel: NotificationChannel = NotificationChannel(
             NOTIFICATION_CHANNEL_ID,
             NOTIFICATION_CHANNEL_NAME,
-            NotificationManager.IMPORTANCE_HIGH
+            NotificationManager.IMPORTANCE_HIGH // IMPORTANCE_DEFAULT or IMPORTANCE_LOW
         ).apply {
-            description = "BackgroundService notification channel"
-            enableLights(true)
+            description = "Executing process in background"
+            enableLights(true) // Notifications posted to this channel should display notification lights
         }
         val manager: NotificationManager = ContextCompat.getSystemService(this, NotificationManager::class.java) ?: return
         manager.createNotificationChannel(channel)
@@ -239,15 +314,15 @@ class BackgroundService : Service() {
         manager.deleteNotificationChannel(NOTIFICATION_CHANNEL_ID)
     }
 
-    /// Create a new FlutterEngine and execute dart entrypoint.
-    private fun runDartEntryPoint(callbackLibraryPath: String, callbackName: String) {
+    /// Create a new FlutterEngine and execute Dart entrypoint.
+    private fun startDartIsolate(callbackLibraryPath: String, callbackName: String) {
         try {
-            Log.v(TAG, "[runDartEntryPoint] Starting flutter engine for background service")
+            Log.d(TAG, "[startDartIsolate] Starting flutter engine for background service")
 
             val loader: FlutterLoader = FlutterInjector.instance().flutterLoader()
 
             /* for (asset in loader.getLookupKeyForAsset("flutter_assets")) {
-                Log.v(TAG, "Asset: $asset")
+                Log.d(TAG, "Asset: $asset")
             } */
 
             if (!loader.initialized()) {
@@ -279,16 +354,34 @@ class BackgroundService : Service() {
                         args
                     )
                     BackgroundPluginRegistrant.registerWith(it)
+                    // flutterEngine?.dartExecutor?.isolateServiceId
+                    it.addEngineLifecycleListener(BackgroundFlutterEngineLifecycleListener {
+                        Log.d(TAG, "FlutterEngine has shutdown and will be discarded now.")
+                        flutterEngine = null
+                    })
                 }
             }
-        } catch (error: UnsatisfiedLinkError) {
+        } catch (exception: UnsatisfiedLinkError) {
             Log.w(TAG, "[runDartEntryPoint] UnsatisfiedLinkError: After a reboot this may happen for a " +
-                "short period and it is ok to ignore then! ${error.message}")
-        } catch (error: Throwable) {
-            flutterEngine = null
-            Log.w(TAG, "[runDartEntryPoint] Unexpected exception during FlutterEngine initialization: "+
-                    "${error.message}")
-            throw error
+                "short period and it is ok to ignore then!", exception)
+        } catch (exception: Throwable) {
+            Log.e(TAG, "[runDartEntryPoint] Unexpected exception during FlutterEngine initialization", exception)
+            throw exception
         }
+    }
+}
+
+private class BackgroundFlutterEngineLifecycleListener(private val callback: () -> Unit) : FlutterEngine.EngineLifecycleListener {
+    private companion object {
+        private const val TAG = "BFELListener"
+    }
+
+    override fun onPreEngineRestart() {
+        TODO("Not yet implemented")
+    }
+
+    override fun onEngineWillDestroy() {
+        Log.d(TAG, "[onEngineWillDestroy] FlutterEngine has shutdown")
+        this.callback()
     }
 }

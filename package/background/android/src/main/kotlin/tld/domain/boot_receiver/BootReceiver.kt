@@ -7,11 +7,14 @@ import android.content.Intent
 import android.util.Log
 import tld.domain.background_service.BackgroundService
 
-/// Receiver для того, чтоб после установки новой версии приложения
-/// приложение автоматически запустилось.
+/// Receives the BOOT_COMPLETED broadcast and starts the BackgroundService
 class BootReceiver : BroadcastReceiver() {
+    internal companion object {
+        private const val TAG: String = "BootReceiver"
+    }
+
     override fun onReceive(context: Context?, intent: Intent?) {
-        if (context == null || intent == null || BackgroundService.isRunning()) return
+        if (context == null || intent == null || BackgroundService.isExecutingDart) return
         when (intent.action) {
             Intent.ACTION_BOOT_COMPLETED,
             Intent.ACTION_MY_PACKAGE_REPLACED,
@@ -31,9 +34,5 @@ class BootReceiver : BroadcastReceiver() {
                 //}
             }
         }
-    }
-
-    companion object {
-        private const val TAG: String = "UpdateReceiver"
     }
 }

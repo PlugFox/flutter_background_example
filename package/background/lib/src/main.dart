@@ -9,6 +9,12 @@ void main() => runZonedGuarded<void>(
         for (var i = 0;; i++) {
           await Future<void>.delayed(const Duration(seconds: 1));
           developer.log('Hello from background #$i', name: 'background');
+          /* if (i == 10) {
+            developer.log('Let\' suicide!', name: 'background');
+            await Future<void>.delayed(const Duration(seconds: 1));
+            Isolate.current.kill();
+            break;
+          } */
         }
       },
       (error, stackTrace) => developer.log(

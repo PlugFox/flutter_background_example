@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart' show ChangeNotifier;
@@ -41,14 +42,21 @@ enum BackgroundStatus {
 /// The controller of the background service.
 class Controller with ChangeNotifier implements g.ApiToDart {
   /// The controller of the background service.
-  factory Controller() => _internalSingleton;
+  factory Controller() => _internalSingleton ??= Controller._internal();
 
   Controller._internal() : _sender = g.ApiFromDart() {
     g.ApiToDart.setup(this);
     isOpen().ignore();
+    _watchdog = Timer.periodic(
+      const Duration(seconds: 5),
+      (_) => isOpen().ignore(),
+    );
   }
 
-  static final Controller _internalSingleton = Controller._internal();
+  static Controller? _internalSingleton;
+
+  /// Check if the background service
+  late final Timer _watchdog;
 
   /// The sender of messages to the native code.
   final g.ApiFromDart _sender;
@@ -79,7 +87,6 @@ class Controller with ChangeNotifier implements g.ApiToDart {
         g.OpenMessage(entryPointRawHandler: entryPointRawHandler),
       );
       _status = BackgroundStatus.opened;
-      isOpen().ignore(); // Check if the background service is still running.
     } on Object {
       _status = BackgroundStatus.closed;
       rethrow;
@@ -93,7 +100,6 @@ class Controller with ChangeNotifier implements g.ApiToDart {
       _status = BackgroundStatus.closing;
       await _sender.close();
       _status = BackgroundStatus.closed;
-      isOpen().ignore(); // Check if the background service is closed now.
     } on Object {
       _status = BackgroundStatus.closed;
       rethrow;
@@ -101,6 +107,8 @@ class Controller with ChangeNotifier implements g.ApiToDart {
   }
 
   /// Check if the background service is running.
+  /// Also it will update the [status] property.
+  /// And works as a health check.
   @mustCallSuper
   Future<bool> isOpen() async {
     try {
@@ -139,6 +147,8 @@ class Controller with ChangeNotifier implements g.ApiToDart {
   @mustCallSuper
   @visibleForTesting
   void dispose() {
+    _internalSingleton = null;
+    _watchdog.cancel();
     g.ApiToDart.setup(null);
     super.dispose();
   }
