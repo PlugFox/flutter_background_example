@@ -26,17 +26,20 @@ import tld.domain.background.R
 /// Lifecycle
 /// -------------------------
 /// Initialization:
-/// 1. startBackgroundService(...) ->
-/// 2. onCreate(...) ->
+/// 1. startBackgroundService() ->
+/// 2. onCreate() ->
 /// 3. createNotificationChannel() ->
-/// 4. onStartCommand(...) ->
-/// 5. initService(...) ->
-/// 6. startForeground(...) ->
-/// 7. startDartIsolate(...)
+/// 4. onStartCommand() ->
+/// 5. initService() ->
+/// 6. startForeground() ->
+/// 7. startDartIsolate()
 ///
 /// Termination:
-/// 1. stopBackgroundService(...) ->
-/// 2. onDestroy(...)
+/// 1. stopBackgroundService()
+/// 2. onStartCommand()
+/// 3. onDestroy()
+/// 4. closeService()
+/// 5. deleteNotificationChannel()
 class BackgroundService : Service() {
     companion object {
         /// Health check of FlutterEngine and ForegroundService
