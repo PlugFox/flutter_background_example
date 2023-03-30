@@ -99,7 +99,7 @@ class BackgroundService : Service() {
             putLastCallbackInformation(context, callbackLibraryPath, callbackName)
         }
 
-        /// Остановить Background Service
+        /// Stop the Background Service
         @Suppress("MemberVisibilityCanBePrivate", "unused")
         fun stopBackgroundService(context: Context) {
             if (!isExecutingDart) return
@@ -108,35 +108,38 @@ class BackgroundService : Service() {
                 action = ACTION_STOP_FOREGROUND_SERVICE
                 context.startService(this)
             }
+            // Remove last callback information if foreground service
+            // should not be restarted after reboot:
             removeLastCallbackInformation(context)
         }
 
-        /// Получить описание точки входа (Flutter Framework) для BackgroundService
-        /// Возвращает пару <CallbackLibraryPath, CallbackName>
+        /// Get entry point of last started Background Service's FlutterEngine
+        /// Returning <CallbackLibraryPath, CallbackName>
         @Suppress("MemberVisibilityCanBePrivate", "unused")
         fun getLastCallbackInformation(context: Context): Pair<String, String>? =
             context.getSharedPreferences(SHARED_PREFERENCES_NAME, Context.MODE_PRIVATE)?.let {
-                val callbackLibraryPath: String = it.getString(CALLBACK_LIBRARY_PATH_KEY, "") ?: return null
-                val callbackName: String = it.getString(CALLBACK_NAME_KEY, "") ?: return null
-                if (callbackLibraryPath.isEmpty() || callbackName.isEmpty()) return null
+                val callbackLibraryPath: String = it.getString(CALLBACK_LIBRARY_PATH_KEY, null) ?: return null
+                val callbackName: String = it.getString(CALLBACK_NAME_KEY, null) ?: return null
+                if (callbackLibraryPath.isBlank() || callbackName.isBlank()) return null
                 return Pair(callbackLibraryPath, callbackName)
             }
 
+        @Suppress("MemberVisibilityCanBePrivate", "unused")
         private fun removeLastCallbackInformation(context: Context) =
             putLastCallbackInformation(context, null, null)
 
+        /// Put entry point of last started Background Service's FlutterEngine
+        @Suppress("MemberVisibilityCanBePrivate", "unused")
         private fun putLastCallbackInformation(context: Context, callbackLibraryPath: String?, callbackName: String?) =
             context.getSharedPreferences(SHARED_PREFERENCES_NAME, Context.MODE_PRIVATE)?.edit()?.apply {
-                if (callbackLibraryPath == null
-                    || callbackLibraryPath == ""
-                    || callbackName == null
-                    || callbackName == ""
-                ) {
+                if (callbackLibraryPath?.isBlank() != false || callbackName?.isBlank() != false) {
                     remove(CALLBACK_LIBRARY_PATH_KEY)
                     remove(CALLBACK_NAME_KEY)
+                    Log.d(TAG, "Callback information removed")
                 } else {
                     putString(CALLBACK_LIBRARY_PATH_KEY, callbackLibraryPath)
                     putString(CALLBACK_NAME_KEY, callbackName)
+                    Log.d(TAG, "Callback information saved: $callbackLibraryPath, $callbackName")
                 }
             }
 
@@ -166,14 +169,14 @@ class BackgroundService : Service() {
         val action: String? = intent?.action
         Log.d(TAG, String.format("[onStartCommand] %s", action))
         if (action != null) when (action) {
-            // Вызывается для запуска foreground service
+            // For start foreground service
             ACTION_START_FOREGROUND_SERVICE -> {
                 initService(intent)
                 Log.d(TAG, String.format("[onStartCommand] Background service is started."))
                 Toast.makeText(applicationContext, "Background service is started.", Toast.LENGTH_LONG).show()
-                return START_NOT_STICKY
+                return START_STICKY // START_NOT_STICKY
             }
-            // Вызывается для остановки foreground service
+            // For stop foreground service
             ACTION_STOP_FOREGROUND_SERVICE -> {
                 Log.d(TAG, "[onStartCommand] Stop foreground service and remove the notification.")
 
@@ -297,7 +300,7 @@ class BackgroundService : Service() {
         val channel: NotificationChannel = NotificationChannel(
             NOTIFICATION_CHANNEL_ID,
             NOTIFICATION_CHANNEL_NAME,
-            NotificationManager.IMPORTANCE_HIGH // IMPORTANCE_DEFAULT or IMPORTANCE_LOW
+            NotificationManager.IMPORTANCE_LOW // IMPORTANCE_HIGH or IMPORTANCE_DEFAULT or IMPORTANCE_LOW
         ).apply {
             description = "Executing process in background"
             enableLights(true) // Notifications posted to this channel should display notification lights

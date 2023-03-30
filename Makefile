@@ -1,9 +1,12 @@
-.PHONY: all build pigeon get
+.PHONY: all build intall pigeon get
 
 all: build
 
 build:
-	@flutter build apk --debug
+	@flutter build apk --release
+
+install:
+	@flutter install
 
 get:
 	@(cd ./package/background && flutter pub get)

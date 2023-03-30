@@ -10,6 +10,7 @@ object BackgroundPluginRegistrant {
     private const val TAG = "GeneratedPluginRegistrant"
     fun registerWith(flutterEngine: FlutterEngine) {
         try {
+            flutterEngine.plugins.add(BackgroundPlugin())
             //flutterEngine.plugins.add(Plugin1())
             //flutterEngine.plugins.add(Plugin2())
             //flutterEngine.plugins.add(Plugin3())

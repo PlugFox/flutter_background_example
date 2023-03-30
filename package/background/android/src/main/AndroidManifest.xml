@@ -52,7 +52,7 @@
           https://developer.android.com/guide/topics/manifest/receiver-element
           -->
         <receiver
-                android:name="tld.domain.boot_receiver.BootReceiver"
+                android:name="tld.domain.background_boot_receiver.BackgroundBootReceiver"
                 android:enabled="true"
                 android:exported="true">
             <intent-filter>

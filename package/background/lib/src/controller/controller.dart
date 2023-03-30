@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer' as dev;
 import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart' show ChangeNotifier;
@@ -48,7 +49,7 @@ class Controller with ChangeNotifier implements g.ApiToDart {
     g.ApiToDart.setup(this);
     isOpen().ignore();
     _watchdog = Timer.periodic(
-      const Duration(seconds: 5),
+      const Duration(seconds: 60),
       (_) => isOpen().ignore(),
     );
   }
@@ -65,6 +66,7 @@ class Controller with ChangeNotifier implements g.ApiToDart {
   set _status(BackgroundStatus value) {
     if (_$status == value) return;
     _$status = value;
+    dev.log('Background status: ${value.name}', name: 'controller', level: 0);
     notifyListeners();
   }
 
@@ -133,13 +135,19 @@ class Controller with ChangeNotifier implements g.ApiToDart {
   @override
   @protected
   @mustCallSuper
-  void afterOpening() => _status = BackgroundStatus.opened;
+  void afterOpening() {
+    dev.log('Background service is opened', name: 'controller', level: 0);
+    _status = BackgroundStatus.opened;
+  }
 
   /// Called when the background service is closed.
   @override
   @protected
   @mustCallSuper
-  void afterClosing() => _status = BackgroundStatus.closed;
+  void afterClosing() {
+    dev.log('Background service is closed', name: 'controller', level: 0);
+    _status = BackgroundStatus.closed;
+  }
 
   /// Dispose the controller and subscriptions.
   /// This method should not be called directly.

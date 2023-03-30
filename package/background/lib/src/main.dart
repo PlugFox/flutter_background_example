@@ -1,18 +1,19 @@
 import 'dart:async';
 import 'dart:developer' as developer;
 
+import 'background_service.dart';
+
 /// Background entry point
 @pragma('vm:entry-point')
 void main() => runZonedGuarded<void>(
       () async {
-        /* Your code */
-        for (var i = 0;; i++) {
+        BackgroundService.instance; // Initialize the background service
+        for (var i = 0;; i = (i + 1) % 100) {
           await Future<void>.delayed(const Duration(seconds: 1));
           developer.log('Hello from background #$i', name: 'background');
           /* if (i == 10) {
             developer.log('Let\' suicide!', name: 'background');
-            await Future<void>.delayed(const Duration(seconds: 1));
-            Isolate.current.kill();
+            BackgroundService.instance.close();
             break;
           } */
         }

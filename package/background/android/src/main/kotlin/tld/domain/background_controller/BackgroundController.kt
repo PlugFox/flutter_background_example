@@ -1,23 +1,29 @@
-package tld.domain.controller
+package tld.domain.background_controller
 
 import android.content.Context
 import android.util.Log
 import tld.domain.background_service.BackgroundService
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.BinaryMessenger
-import tld.domain.controller.api.*
+import tld.domain.background_controller.api.*
 
-interface IAttachableController {
-    /// Attach to the FlutterEngine
+interface IAttachableBackgroundController {
+    /// Attach to the FlutterEngine.
     fun attach()
 
-    /// Detach from the FlutterEngine
+    /// Detach from the FlutterEngine.
     fun detach()
 }
 
-class Controller(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) : IAttachableController, ApiFromDart {
+/// Communication between Flutter and Android side through method channels.
+class BackgroundController(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) :
+        IAttachableBackgroundController, ApiFromDart {
+
     internal companion object {
-        private const val TAG: String = "Controller"
+        private const val TAG: String = "BackgroundController"
+
+        /// This sink should be registered by the [open] method and all the messages should be sent
+        /// through it to the Flutter side which opened the background service.
         internal var sink: ApiToDart? = null
     }
 
@@ -34,19 +40,18 @@ class Controller(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) : IAt
     override fun attach() {
         Log.d(TAG, "attach")
         ApiFromDart.setUp(binaryMessenger, this)
-        sink = ApiToDart(binaryMessenger)
     }
 
     override fun detach() {
         Log.d(TAG, "detach")
         ApiFromDart.setUp(binaryMessenger, null)
-        sink = null
     }
 
     override fun open(openMessage: OpenMessage, callback: (Result<Unit>) -> Unit) {
         Log.d(TAG, "open")
         val entryPointRawHandler: Long = openMessage.entryPointRawHandler ?: throw Exception("entryPointRawHandler is null")
         try {
+            sink = ApiToDart(binaryMessenger)
             Log.d(TAG, "startBackgroundService")
             BackgroundService.startBackgroundService(applicationContext, entryPointRawHandler)
             callback(Result.success(Unit))
@@ -65,6 +70,7 @@ class Controller(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) : IAt
             BackgroundService.stopBackgroundService(applicationContext)
             callback(Result.success(Unit))
             sink?.afterClosing { }
+            sink = null
         } catch (exception: Throwable) {
             Log.e(TAG, "Error while closing BackgroundService", exception)
             callback(Result.failure(exception))
