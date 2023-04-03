@@ -7,7 +7,10 @@ import 'background_service.dart';
 @pragma('vm:entry-point')
 void main() => runZonedGuarded<void>(
       () async {
-        BackgroundService.instance; // Initialize the background service
+        // Initialize the background service, bindings,
+        // method channels, and plugins.
+        BackgroundService.instance;
+        /* Your code goes here... */
         for (var i = 0;; i = (i + 1) % 100) {
           await Future<void>.delayed(const Duration(seconds: 1));
           developer.log('Hello from background #$i', name: 'background');

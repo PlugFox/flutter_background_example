@@ -23,4 +23,9 @@ class BackgroundService {
   Future<void> close() => ApiFromDart().close();
 }
 
+/// Binding for the background service,
+/// allows to use the [SchedulerBinding] and
+/// [ServicesBinding] in the background.
+/// For MethodChannel and Plugins to work,
+/// we need to initialize the [ServicesBinding].
 class _$BackgroundBinding = BindingBase with SchedulerBinding, ServicesBinding;

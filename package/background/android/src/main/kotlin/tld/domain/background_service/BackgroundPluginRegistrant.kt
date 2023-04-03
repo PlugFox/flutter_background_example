@@ -5,6 +5,8 @@ import io.flutter.Log
 import io.flutter.embedding.engine.FlutterEngine
 import tld.domain.background.BackgroundPlugin
 
+/// Register the plugins that should be registered when the FlutterEngine is attached to
+/// the BackgroundService.
 @Keep
 object BackgroundPluginRegistrant {
     private const val TAG = "GeneratedPluginRegistrant"

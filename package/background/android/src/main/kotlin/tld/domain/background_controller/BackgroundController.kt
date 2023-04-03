@@ -7,6 +7,8 @@ import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.BinaryMessenger
 import tld.domain.background_controller.api.*
 
+/// A Controller that will be attached to the FlutterEngine and will be responsible for the
+/// communication between Flutter and native Android.
 interface IAttachableBackgroundController {
     /// Attach to the FlutterEngine.
     fun attach()
