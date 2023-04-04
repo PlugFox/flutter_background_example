@@ -76,7 +76,7 @@ For example:
 - `ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION`, `ACCESS_BACKGROUND_LOCATION`
 
 ```bash
-code ./android/app/src/main/AndroidManifest.xml
+code ./android/src/main/AndroidManifest.xml
 ```
 
 <<
