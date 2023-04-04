@@ -48,7 +48,7 @@ flutter pub add --dev pigeon
    The controller is our main class that will be used to communicate with the native code, and spawn and kill the background service.
 
 ```bash
-mkdir -p "./android/src/main/java/tld/domain/controller/"
+mkdir -p "./android/src/main/kotlin/tld/domain/background_controller/"
 mkdir -p "./lib/src/controller/"
 ```
 
@@ -207,7 +207,7 @@ Create the following directories for pigeon code generation (if they do not exis
 
 ```bash
 mkdir -p ./lib/src/controller
-mkdir -p ./android/src/main/kotlin/tld/domain/controller/api
+mkdir -p ./android/src/main/kotlin/com/vexus/background_controller/api
 ```
 
 And run code generation
@@ -216,8 +216,8 @@ And run code generation
 flutter pub run pigeon \
     --input "pigeons/api.dart" \
     --dart_out "lib/src/controller/api.g.dart" \
-    --kotlin_out "android/src/main/kotlin/tld/domain/controller/api/Api.kt" \
-    --kotlin_package "tld.domain.controller.api"
+    --kotlin_out "android/src/main/kotlin/com/vexus/background_controller/api/Api.kt" \
+    --kotlin_package "com.vexus.background_controller.api"
 ```
 
 ---
@@ -1049,7 +1049,7 @@ object BackgroundPluginRegistrant {
 14. `[background]` Create a BackgroundController to handle the messages from the dart side.
 
 ```bash
-code ./android/src/main/kotlin/tld/domain/controller/BackgroundController.kt
+code ./android/src/main/kotlin/tld/domain/background_controller/BackgroundController.kt
 ```
 
 <<
