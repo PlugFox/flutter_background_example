@@ -282,6 +282,8 @@ code ./lib/src/controller/controller.dart
 <<
 
 ```dart
+import 'dart:async';
+import 'dart:developer' as dev;
 import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart' show ChangeNotifier;
@@ -313,7 +315,10 @@ enum BackgroundStatus {
   bool get isOpened => this == opened;
 
   /// Is the background service not opening?
-  bool get isNotOpened => !isOpened;
+  bool get isClosed => this == closed;
+
+  /// In progress
+  bool get inProgress => !isOpened && !isClosed;
 
   @override
   String toString() => name;
@@ -322,14 +327,21 @@ enum BackgroundStatus {
 /// The controller of the background service.
 class Controller with ChangeNotifier implements g.ApiToDart {
   /// The controller of the background service.
-  factory Controller() => _internalSingleton;
+  factory Controller() => _internalSingleton ??= Controller._internal();
 
   Controller._internal() : _sender = g.ApiFromDart() {
     g.ApiToDart.setup(this);
     isOpen().ignore();
+    _watchdog = Timer.periodic(
+      const Duration(seconds: 60),
+      (_) => isOpen().ignore(),
+    );
   }
 
-  static final Controller _internalSingleton = Controller._internal();
+  static Controller? _internalSingleton;
+
+  /// Check if the background service
+  late final Timer _watchdog;
 
   /// The sender of messages to the native code.
   final g.ApiFromDart _sender;
@@ -338,6 +350,7 @@ class Controller with ChangeNotifier implements g.ApiToDart {
   set _status(BackgroundStatus value) {
     if (_$status == value) return;
     _$status = value;
+    dev.log('Background status: ${value.name}', name: 'controller', level: 0);
     notifyListeners();
   }
 
@@ -360,7 +373,6 @@ class Controller with ChangeNotifier implements g.ApiToDart {
         g.OpenMessage(entryPointRawHandler: entryPointRawHandler),
       );
       _status = BackgroundStatus.opened;
-      isOpen().ignore(); // Check if the background service is still running.
     } on Object {
       _status = BackgroundStatus.closed;
       rethrow;
@@ -374,7 +386,6 @@ class Controller with ChangeNotifier implements g.ApiToDart {
       _status = BackgroundStatus.closing;
       await _sender.close();
       _status = BackgroundStatus.closed;
-      isOpen().ignore(); // Check if the background service is closed now.
     } on Object {
       _status = BackgroundStatus.closed;
       rethrow;
@@ -382,6 +393,8 @@ class Controller with ChangeNotifier implements g.ApiToDart {
   }
 
   /// Check if the background service is running.
+  /// Also it will update the [status] property.
+  /// And works as a health check.
   @mustCallSuper
   Future<bool> isOpen() async {
     try {
@@ -406,13 +419,31 @@ class Controller with ChangeNotifier implements g.ApiToDart {
   @override
   @protected
   @mustCallSuper
-  void afterOpening() => _status = BackgroundStatus.opened;
+  void afterOpening() {
+    dev.log('Background service is opened', name: 'controller', level: 0);
+    _status = BackgroundStatus.opened;
+  }
 
   /// Called when the background service is closed.
   @override
   @protected
   @mustCallSuper
-  void afterClosing() => _status = BackgroundStatus.closed;
+  void afterClosing() {
+    dev.log('Background service is closed', name: 'controller', level: 0);
+    _status = BackgroundStatus.closed;
+  }
+
+  /// Dispose the controller and subscriptions.
+  /// This method should not be called directly.
+  @override
+  @mustCallSuper
+  @visibleForTesting
+  void dispose() {
+    _internalSingleton = null;
+    _watchdog.cancel();
+    g.ApiToDart.setup(null);
+    super.dispose();
+  }
 }
 ```
 
