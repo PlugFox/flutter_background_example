@@ -83,7 +83,7 @@ code ./android/src/main/AndroidManifest.xml
 
 ```xml
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-          package="tld.domain.background">
+  package="tld.domain.background">
 
     <!-- Allows a regular application to use Service.startForeground. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
@@ -107,6 +107,7 @@ code ./android/src/main/AndroidManifest.xml
     <!-- Allows applications to open network sockets. -->
     <uses-permission android:name="android.permission.INTERNET" />
 
+
     <application>
         <!--
           Foreground service
@@ -124,7 +125,7 @@ code ./android/src/main/AndroidManifest.xml
           - - - - - - - - - - - - - - - - - -
           https://developer.android.com/guide/topics/manifest/service-element
           -->
-        <service android:name=".BackgroundService"
+        <service android:name="tld.domain.background_service.BackgroundService"
                  android:enabled="true"
                  android:exported="true"
                  android:stopWithTask="false"
@@ -132,10 +133,10 @@ code ./android/src/main/AndroidManifest.xml
                  />
 
         <!-- Restart service after reboot
-            https://developer.android.com/guide/topics/manifest/receiver-element
-            -->
+          https://developer.android.com/guide/topics/manifest/receiver-element
+          -->
         <receiver
-                android:name=".BootReceiver"
+                android:name="tld.domain.background_boot_receiver.BackgroundBootReceiver"
                 android:enabled="true"
                 android:exported="true">
             <intent-filter>
