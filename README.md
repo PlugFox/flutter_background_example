@@ -228,18 +228,13 @@ flutter pub run pigeon \
 
 ---
 
-8. `[main]` Check the following in your "`gradle.properties`" file:
+8. `[main]` Check the following in your "`build.gradle`" file:
 
 ```bash
-code ./android/gradle.properties
+code ./android/build.gradle
 ```
 
-<<
-
-```xml
-android.useAndroidX=true
-android.enableJetifier=true
-```
+And add native android dependencies.
 
 ---
 
