@@ -424,7 +424,7 @@ class Controller with ChangeNotifier implements g.ApiToDart {
 
 ```bash
 touch ./lib/src/controller/background_scope.dart
-echo 'export "src/controller/background_scope.dart";' >> ./lib/background_scope.dart
+echo 'export "src/controller/background_scope.dart";' >> ./lib/background.dart
 code ./lib/src/controller/background_scope.dart
 ```
 
